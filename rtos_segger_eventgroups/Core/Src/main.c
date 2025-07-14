@@ -24,6 +24,7 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#include "event_groups.h"
 #include "SEGGER_SYSVIEW.h"
 /* USER CODE END Includes */
 
@@ -62,6 +63,8 @@ void initPA0_as_input(void);
 
 TaskHandle_t tas1Handle;
 TaskHandle_t tas2Handle;
+
+EventGroupHandle_t eventGroup1 = NULL;
 /* USER CODE END 0 */
 
 /**
@@ -102,6 +105,11 @@ int main(void)
   vSetVaru1MaxPRIGROUPValue();
   SEGGER_SYSVIEW_Start();
 
+  eventGroup1 = xEventGroupCreate();
+  if(NULL == eventGroup1)
+  {
+	  while(0);
+  }
   xTaskCreate(task1_fun,"task1",configMINIMAL_STACK_SIZE,(void*)0,2,(TaskHandle_t * const)&tas1Handle);
   xTaskCreate(task2_fun,"task2",configMINIMAL_STACK_SIZE,(void*)0,2,(TaskHandle_t * const)&tas2Handle);
 
@@ -424,25 +432,31 @@ void task1_fun(void* pt)
 	//TickType_t lastWakeUpTime;
 	uint32_t pulNotificationValue = 10; //?
 	//lastWakeUpTime = xTaskGetTickCount();
+	EventBits_t EventBits = 0;
 	while(1)
 	{
 		//vTaskDelayUntil(&lastWakeUpTime,pdMS_TO_TICKS(500));
-		 if( pdTRUE == xTaskNotifyWait( 0,0,&pulNotificationValue,portMAX_DELAY ) )
+		 EventBits = xEventGroupWaitBits( eventGroup1,(1 << 1),pdTRUE,pdFALSE,portMAX_DELAY );
+
+		 if ((1 << 1) & EventBits)
 		 {
 			 HAL_GPIO_TogglePin(GPIOG,GREEN_Pin);
-		 }
-		 else
-		 {
-			 while(0);
 		 }
 	}
 }
 void task2_fun(void* pt)
 {
+	EventBits_t EventBits = 0;
+	uint32_t pulNotificationValue = 0;
 	while(1)
 	{
 		HAL_GPIO_TogglePin(GPIOG,LD4_Pin);
-		vTaskDelay(pdMS_TO_TICKS(500));
+
+		if(pdTRUE == xTaskNotifyWait( 0,0,&pulNotificationValue,portMAX_DELAY ))
+		{
+			EventBits = xEventGroupSetBits(eventGroup1, (1 << 2));
+			while(0);
+		}
 	}
 }
 
@@ -459,12 +473,10 @@ void initPA0_as_input(void)
 	NVIC_EnableIRQ(EXTI0_IRQn);
 	//NVIC_SetPendingIRQ(EXTI0_IRQn);
 }
-
 void EXTI0_IRQHandler(void)
 {
 	EXTI->PR = 1;
-//	vTaskNotifyGiveFromISR( tas1Handle,NULL );
-	xTaskNotifyFromISR( tas1Handle, 0b0101, eSetBits, NULL );
+	xTaskNotifyFromISR(tas2Handle,0,eIncrement,NULL);
 }
 
 /* USER CODE END 4 */
