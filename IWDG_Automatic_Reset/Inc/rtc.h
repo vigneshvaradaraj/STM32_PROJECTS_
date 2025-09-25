@@ -9,6 +9,7 @@
 #define RTC_H_
 
 #include <stdint.h>
+#include "stm32_f429xx.h"
 
 #define CR_ALRAIE (1U << 12U)
 #define ISR_ALRAF (1U << 8U)
