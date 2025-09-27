@@ -20,10 +20,8 @@
 #include "rtc.h"
 #include "stm32_f429xx.h"
 #include "iwdg.h"
-#include "wwdg.h"
 #include "led.h"
 #include "gpio_exti.h"
-#include "standby_mode.h"
 
 #define BUFF_LEN   20
 
@@ -31,7 +29,7 @@
 static void display_rtc_calander(void);
 #endif
 static void check_reset_source(void);
-void led_blink_forever(void);
+
 uint8_t time_buff[BUFF_LEN] = {0};
 uint8_t date_buff[BUFF_LEN] = {0};
 
@@ -82,12 +80,6 @@ void clock_config(void)
 	RCC->CFGR &= ~RCC_CFGR_PPRE2;
 	RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;
 }
-
-/*Press the blue push botton to enter stand by mode*/
-/*PA0 is wakeup pin and itis active low*/
-/*connect a jumper wire from PA0 to gnd in normal mode*/
-/*pull out jumper wire and connect to 3.3v to cause a change in logic which will in turn trigger the wakeup*/
-
 int main(void)
 {
     /* Loop forever
@@ -97,47 +89,38 @@ int main(void)
 	rtc_tamper_detect_init();
 	*/
 
-	//clock_config();
+	clock_config();
 	gpio_interrupt_init();
 	led_init();
 	check_reset_source();
-	led_blink_forever();
+	wwdg_init();
 	for(;;)
 	{
-
-	}
-}
-
-void led_blink_forever(void)
-{
-	while(1)
-	{
-		GPIOA->ODR ^= (1U << 5U);
-		for(int i = 0;i < 90000;i++);
+		if(g_btn_press != 1)
+		{
+			/*Set counter*/
+			WWDG->CR &= ~WWDG_CR_T;
+			WWDG->CR |= 0x7E;
+			led_toggle();
+		}
+		//display_rtc_calander();
 	}
 }
 
 static void check_reset_source(void)
 {
-	/*Enable clock access to PWR*/
-	RCC->AHB1ENR |= RCC_APB1ENR_PWREN;
-
-	if((PWR->CSR & PWR_CSR_SBF) == PWR_CSR_SBF)
+	if((RCC->CSR & RCC_CSR_WWDGRSTF) == RCC_CSR_WWDGRSTF)
 	{
-		/*Clear standby flag*/
-		PWR->CR |= PWR_CR_CSBF;
+		/*Clear WWDG Reset flag*/
+		RCC->CSR |= RCC_CSR_RMVF;
 
 		/*Turn LED on*/
-		led_toggle();
+		led_on();
+		while(g_btn_press != 1)
+		{
 
-		/*Wait for wakeup pin to be released*/
-		while(get_wakeup_pin_state() == 0);
-
-	}
-	/*Check and clear wake up flag*/
-	if((PWR->CSR & PWR_CSR_WUF) == PWR_CSR_WUF)
-	{
-		PWR->CR |= PWR_CR_CWUF;
+		}
+		g_btn_press = 0;
 	}
 }
 
@@ -228,7 +211,6 @@ void TAMP_STAMP_IRQHandler(void)
 
 static void btn_callback(void)
 {
-	standby_wakeup_pin_setup();
 	g_btn_press = 1;
 }
 void EXTI15_10_IRQHandler(void)

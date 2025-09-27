@@ -30,8 +30,9 @@
 #if 0
 static void display_rtc_calander(void);
 #endif
-static void check_reset_source(void);
+
 void led_blink_forever(void);
+static void wait_btn_press(void);
 uint8_t time_buff[BUFF_LEN] = {0};
 uint8_t date_buff[BUFF_LEN] = {0};
 
@@ -100,44 +101,38 @@ int main(void)
 	//clock_config();
 	gpio_interrupt_init();
 	led_init();
-	check_reset_source();
-	led_blink_forever();
+	rtc_wkup_timer_init();
+	/*Check if system resumed and check source */
+	if((PWR->CSR & PWR_CSR_SBF) != PWR_CSR_SBF)
+	{
+		/*Run after normal reset*/
+		wait_btn_press();
+		/*system going to standby mode*/
+		/*Enter standby with RTC wakeup timer enabled*/
+		enter_standby_mode_rtc_wkup();
+	}
+	else
+	{
+		/*Clear standby flag*/
+		PWR->CR |= PWR_CR_CSBF;
+
+		/*Reset the internal wakeup flag*/
+		RTC->ISR &= ~RTC_ISR_WUTF;
+
+		/*System back from standby mode*/
+	}
 	for(;;)
 	{
 
 	}
 }
 
-void led_blink_forever(void)
+static void wait_btn_press(void)
 {
-	while(1)
+	while(g_btn_press == 0)
 	{
 		GPIOA->ODR ^= (1U << 5U);
 		for(int i = 0;i < 90000;i++);
-	}
-}
-
-static void check_reset_source(void)
-{
-	/*Enable clock access to PWR*/
-	RCC->AHB1ENR |= RCC_APB1ENR_PWREN;
-
-	if((PWR->CSR & PWR_CSR_SBF) == PWR_CSR_SBF)
-	{
-		/*Clear standby flag*/
-		PWR->CR |= PWR_CR_CSBF;
-
-		/*Turn LED on*/
-		led_toggle();
-
-		/*Wait for wakeup pin to be released*/
-		while(get_wakeup_pin_state() == 0);
-
-	}
-	/*Check and clear wake up flag*/
-	if((PWR->CSR & PWR_CSR_WUF) == PWR_CSR_WUF)
-	{
-		PWR->CR |= PWR_CR_CWUF;
 	}
 }
 
@@ -228,7 +223,7 @@ void TAMP_STAMP_IRQHandler(void)
 
 static void btn_callback(void)
 {
-	standby_wakeup_pin_setup();
+	/*button pressed*/
 	g_btn_press = 1;
 }
 void EXTI15_10_IRQHandler(void)
