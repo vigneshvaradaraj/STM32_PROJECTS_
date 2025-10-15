@@ -79,6 +79,10 @@ uint32_t tickCount = 0;
 FATFS fs;          // File system object
 FIL file;          // File object
 FRESULT res;
+FIL fil;
+uint8_t buf[10] = {0};
+unsigned int var = 0;
+char filePath[] = "data.txt";
 int main(void)
 {
     /* Loop forever */
@@ -88,8 +92,19 @@ int main(void)
 	spi_peripheral_clock_init();
 	spi_init();
 	fat_file_init();
+//	spi_send(0x34);
+	while(tickCount <= 0);
+	GPIOA->BSRR |= (1 << 19);
+	res = f_mount(&fs, "nn.txt", 0);
 
-	res = f_mount(&fs, "", 1);
+	res = f_open(&fil, filePath,FA_READ);
+
+	res = f_read(&fil,buf,10,&var);
+
+    f_printf(&fil, "some number :%d\n", 12);
+
+    /* Close the file */
+    f_close(&fil);
 
 	for(;;);
 }

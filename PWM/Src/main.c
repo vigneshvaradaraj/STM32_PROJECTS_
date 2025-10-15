@@ -20,27 +20,38 @@
 #include "dma.h"
 #include "adc_dma.h"
 #include "stm32_f429xx.h"
-#include "uart_dma.h"
+#include "tim.h"
 
-extern uint8_t g_rx_complete;
-extern uint8_t g_uart_complete;
-extern char uart_data_buffer[UART_DATA_BUF_SIZE];
 extern uint8_t g_transfer_complete;
 
 uint8_t srcBuf[10] = "1234567890";
 uint8_t dstBuf[10] = {0};
-char msg_buf[] = "initialization cmplt!";
+
+void delay(void)
+{
+	for(int i = 0;i < 90000;i++);
+}
+
 int main(void)
 {
+	int j = 1;
 	//dma2MemToMemCfg();
 	//dma_transfer_start(srcBuf,dstBuf,sizeof(dstBuf));
 	//adc_init();
 	//adc_tim_data_init();
-	uart2_rx_tx_init();
-	dma1_init();
-	dma1_stream5_uart_rx_config();
-	dma1_stream6_uart_tx_config(msg_buf,sizeof(msg_buf));
-	for(;;);
+	tim2_pa0_pa1_pwm_init();
+	tim2_pa0_pa1_pwm_set_dutycycle(1,100);
+	tim2_pa0_pa1_pwm_set_dutycycle(2,2);
+	for(;;)
+	{
+		while(j)
+		{
+			tim2_pa0_pa1_pwm_set_dutycycle(1,j++);
+			if(j >= 100) j= 1;
+			delay();
+		}
+
+	}
 }
 
 void DMA2_Stream0_IRQHandler(void)

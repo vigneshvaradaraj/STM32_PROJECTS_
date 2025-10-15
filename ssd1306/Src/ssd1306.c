@@ -518,7 +518,9 @@ uint8_t SSD1306_DrawChar (char character)
   // loop through 5 bits
   while (i < CHARS_COLS_LENGTH) {
     // read byte 
-    cacheMemLcd[_counter++] = FONTS[character-32][i++];
+    cacheMemLcd[_counter] = *(*(FONTS + (character-32)) + i);
+    _counter++;
+    i++;
   }
 
   // update position

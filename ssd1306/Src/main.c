@@ -17,7 +17,10 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include "stm32_f429xx.h"
+
+#include "sysTick.h"
 
 #include "ssd1306.h"
 
@@ -26,6 +29,8 @@
 #define PLL_M  4
 #define PLL_N  64
 #define PLL_P  0
+
+uint32_t sysTickCount = 0;
 
 void config_clock(void)
 {
@@ -154,18 +159,54 @@ void i2c_master_send_data(uint8_t* tx_buffer,uint32_t len)
 	I2C1->CR1 |= (1 << 9);
 }
 
+void init_sytick(void)
+{
+	SYS_TICK->CTRL = (1 << 1);
+
+	SYS_TICK->RLV = 8000U - 1U;
+	SYS_TICK->CV = 0;
+
+
+	SYS_TICK->CTRL |= (1 << 0);
+}
+
+void SysTick_Handler(void)
+{
+	sysTickCount++;
+}
+
+uint32_t xGetTickCount(void)
+{
+	return sysTickCount;
+}
+
+void delay(uint32_t del)
+{
+	uint32_t tickCnt = xGetTickCount();
+
+	while((xGetTickCount() - tickCnt) < del);
+}
+
 int main(void)
 {
+	char str[50] = {0};
+	int secCount = 0;
 	config_clock();
 	i2c_gpio_init();
 	i2c_init();
+	init_sytick();
 
 	SSD1306_Init(SSD1306_ADDR);
 
-	SSD1306_SetPosition (0, 0);
-	SSD1306_DrawString ("JHSGFJDSBJ");
-	SSD1306_UpdateScreen(SSD1306_ADDR);
+
 
     /* Loop forever */
-	for(;;);
+	for(;;)
+	{
+		sprintf(str,"SEC :%d",secCount++);
+		SSD1306_SetPosition (5, 1);
+		SSD1306_DrawString (str);
+		SSD1306_UpdateScreen(SSD1306_ADDR);
+		delay(1000);
+	}
 }

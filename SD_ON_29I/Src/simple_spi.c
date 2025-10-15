@@ -15,12 +15,13 @@ void spi_gpio_init(void)
 	//PA5-clk
 	//PA6-miso
 	//PA7-mosi
+	GPIOA->MODER |= (1 << 6);//output PA3
 	GPIOA->MODER |= (2 << 8);//alternate function for PA4
 	GPIOA->MODER |= (2 << 10);//alternate function for PA5
 	GPIOA->MODER |= (2 << 12);//alternate function for PA6
 	GPIOA->MODER |= (2 << 14);//alternate function for PA7
 	
-	GPIOA->AFR[0] |= (5 << 16);//SPI selected as AF for PA4 
+	GPIOA->AFR[0] |= (5 << 16);//SPI selected as AF for PA4
 	GPIOA->AFR[0] |= (5 << 20);//SPI selected as AF for PA5
 	GPIOA->AFR[0] |= (5 << 24);//SPI selected as AF for PA6
 	GPIOA->AFR[0] |= (5 << 28);//SPI selected as AF for PA7

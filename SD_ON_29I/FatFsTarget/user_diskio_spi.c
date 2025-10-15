@@ -37,8 +37,8 @@
 #define FCLK_SLOW() SPI1->CR1 |= (7 << 3)	/* Set SCLK = slow, approx 280 KBits/s divided by 256*/
 #define FCLK_FAST() SPI1->CR1 |= (2 << 3)	/* Set SCLK = fast, approx 4.5 MBits/s divided by 8*/
 
-#define CS_HIGH()	GPIOA->BSRR |= (1 << 4)
-#define CS_LOW()	GPIOA->BSRR |= (1 << 20)
+#define CS_HIGH()	GPIOA->BSRR |= (1 << 3)
+#define CS_LOW()	GPIOA->BSRR |= (1 << 19)
 
 /*--------------------------------------------------------------------------
 
